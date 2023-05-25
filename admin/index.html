@@ -1,35 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>Content Manager</title>
     <script src="https://unpkg.com/netlify-auth-providers"></script>
-    <script src="./netlify-auth.js"></script>
+    <!-- <script src="./netlify-auth.js"></script> -->
     <script>
-        function onChangeConfig(event) {
-            var link = document.createElement('link');
-            link.type = 'text/yaml';
-            link.rel = 'cms-config-url';
-            link.href = './cfg/config-2.yml';
-            document.head.appendChild(link);
-        }
+      //   function onChangeConfig(event) {
+      //     var link = document.createElement("link");
+      //     link.type = "text/yaml";
+      //     link.rel = "cms-config-url";
+      //     link.href = "./cfg/config-2.yml";
+      //     document.head.appendChild(link);
+      //   }
     </script>
-    <link href="./cfg/config.yml" type="text/yaml" rel="cms-config-url">
-</head>
-
-<body>
+    <link href="./cfg/config.yml" type="text/yaml" rel="cms-config-url" />
+  </head>
+  <!-- https://decapcms.org/docs/configuration-options/
+    https://docs.netlify.com/visitor-access/oauth-provider-tokens/#using-an-authentication-provider
+-->
+  <body>
+    <h1>GitHub Authentication Example:</h1>
     <p><a href="#" id="login">Authenticate</a></p>
     <p>Token: <span id="output-token">Not authenticated yet</span></p>
     <p>
-        User emails:
-        <span id="output-email">Not authenticated yet</span>
+      User emails:
+      <span id="output-email">Not authenticated yet</span>
     </p>
-    <!-- Include the script that builds the page and powers Decap CMS -->
-    <script src="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.js"></script>
-    <button type="button" onclick="onChangeConfig()">Change Config</button>
-</body>
 
+    <script>
+      const anchorTag = document.getElementById("login");
+      const outputToken = document.getElementById("output-token");
+      const outputEmail = document.getElementById("output-email");
+
+      anchorTag.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        const authenticator = new netlify.default({});
+
+        authenticator.authenticate(
+          // Set the OAuth provider and token scope
+          // Provider can be "github", "gitlab", or "bitbucket"
+          // The scopes available depend on your OAuth provider
+          { provider: "github", scope: "user" },
+          async function (error, data) {
+            if (error) {
+              outputToken.innerText =
+                "Error Authenticating with GitHub: " + error;
+            } else {
+              outputToken.innerText =
+                "Authenticated with GitHub. Access Token: " + data.token;
+              outputEmail.innerText = await loadGitHubUserEmails(data.token);
+            }
+          }
+        );
+      });
+
+      async function loadGitHubUserEmails(token) {
+        return await fetch("https://api.github.com/user/emails", {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+            Authorization: `token ${token}`,
+          },
+        })
+          .then((response) => response.json())
+          .then((response) => JSON.stringify(response));
+      }
+    </script>
+  </body>
 </html>
